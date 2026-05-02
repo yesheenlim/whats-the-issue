@@ -1,5 +1,6 @@
 from enum import StrEnum
 from typing import Any, Optional
+
 from pydantic import BaseModel, HttpUrl
 
 
@@ -19,6 +20,7 @@ class Job(BaseModel):
 
 # --- Request / Response models ---
 
+
 class AnalyzeRequest(BaseModel):
     github_url: HttpUrl
 
@@ -33,4 +35,3 @@ class PollResponse(BaseModel):
     status: JobStatus
     result: Optional[dict[str, Any]] = None
     error: Optional[str] = None
-    

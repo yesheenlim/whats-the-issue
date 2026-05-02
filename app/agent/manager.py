@@ -1,12 +1,12 @@
 import asyncio
 import uuid
 from typing import Annotated, Optional
-from typing_extensions import TypedDict
 
-from langgraph.graph import StateGraph, END
-from langgraph.graph.message import add_messages
-from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import AIMessage
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, StateGraph
+from langgraph.graph.message import add_messages
+from typing_extensions import TypedDict
 
 from app.models import Job, JobStatus
 
@@ -31,9 +31,7 @@ class AgentManager:
         """
 
         def echo_node(state: AgentState) -> dict:
-            echo_message = AIMessage(
-                content=f"[DUMMY AGENT] Received request to analyze: {state['github_url']}"
-            )
+            echo_message = AIMessage(content=f"[DUMMY AGENT] Received request to analyze: {state['github_url']}")
             return {"messages": [echo_message]}
 
         builder = StateGraph(AgentState)
@@ -66,12 +64,7 @@ class AgentManager:
                 config=config,
             )
 
-            serialized = {
-                "messages": [
-                    {"type": m.type, "content": m.content}
-                    for m in result.get("messages", [])
-                ]
-            }
+            serialized = {"messages": [{"type": m.type, "content": m.content} for m in result.get("messages", [])]}
 
             async with self._lock:
                 self._jobs[thread_id].status = JobStatus.COMPLETE
@@ -85,4 +78,3 @@ class AgentManager:
     async def get_job(self, thread_id: str) -> Optional[Job]:
         async with self._lock:
             return self._jobs.get(thread_id)
-        

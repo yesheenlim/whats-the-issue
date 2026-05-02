@@ -1,5 +1,6 @@
 from enum import StrEnum
 from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
