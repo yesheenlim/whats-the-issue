@@ -1,10 +1,11 @@
-from enum import StrEnum
-from typing import Any, Optional
+"""Pydantic models for API requests and responses."""
 
 from pydantic import BaseModel, HttpUrl
 
 
-class JobStatus(StrEnum):
+class JobStatus(str):
+    """String constants for job lifecycle states."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETE = "complete"
@@ -12,24 +13,33 @@ class JobStatus(StrEnum):
 
 
 class Job(BaseModel):
+    """Internal job state tracked by AgentManager."""
+
     thread_id: str
-    status: JobStatus
-    result: Optional[dict[str, Any]] = None
-    error: Optional[str] = None
+    status: str
+    result: dict | None = None
+    error: str | None = None
 
 
 class AnalyzeRequest(BaseModel):
+    """Request body for POST /analyze."""
+
     github_url: HttpUrl
-    top_k: int = 50
+    top_k_issues: int = 50
+    top_n_comments: int = 5
 
 
 class AnalyzeResponse(BaseModel):
+    """Immediate response returned on job submission."""
+
     thread_id: str
-    status: JobStatus
+    status: str
 
 
 class PollResponse(BaseModel):
+    """Response returned when polling a job by thread ID."""
+
     thread_id: str
-    status: JobStatus
-    result: Optional[dict[str, Any]] = None
-    error: Optional[str] = None
+    status: str
+    result: dict | None = None
+    error: str | None = None
