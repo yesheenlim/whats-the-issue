@@ -661,6 +661,14 @@
           autocomplete="off"
         />
 
+        <label for="maxCommentsInput">Max Comments per Issue</label>
+        <input
+          type="text"
+          id="maxCommentsInput"
+          placeholder="e.g. 5  (default: all)"
+          autocomplete="off"
+        />
+
         <button class="btn" id="submitBtn" onclick="submitAnalysis()">
           <div class="spin"></div>
           <span id="submitLabel">Analyze Issues</span>
@@ -730,8 +738,10 @@
   async function submitAnalysis() {
     const token = document.getElementById('tokenInput').value.trim();
     const url   = document.getElementById('urlInput').value.trim();
-    const maxIssuesRaw = document.getElementById('maxIssuesInput').value.trim();
-    const topK = maxIssuesRaw ? parseInt(maxIssuesRaw, 10) : undefined;
+    const maxIssuesRaw  = document.getElementById('maxIssuesInput').value.trim();
+    const maxCommentsRaw = document.getElementById('maxCommentsInput').value.trim();
+    const topKIssues   = maxIssuesRaw  ? parseInt(maxIssuesRaw,  10) : undefined;
+    const topNComments = maxCommentsRaw ? parseInt(maxCommentsRaw, 10) : undefined;
 
     if (!token) { flashInput('tokenInput'); return; }
     if (!url)   { flashInput('urlInput');   return; }
@@ -739,7 +749,8 @@
     setSubmitState(true);
 
     const body = { github_url: url };
-    if (topK !== undefined && !isNaN(topK)) body.top_k = topK;
+    if (topKIssues   !== undefined && !isNaN(topKIssues))   body.top_k_issues   = topKIssues;
+    if (topNComments !== undefined && !isNaN(topNComments)) body.top_n_comments = topNComments;
 
     try {
       const res = await fetch(`${API_BASE}/analyze`, {
