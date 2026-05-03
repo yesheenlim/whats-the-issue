@@ -72,7 +72,4 @@ async def fetch_issues(
     # GitHub issues endpoint also returns PRs — filter them out
     issues_only = [i for i in raw_issues if "pull_request" not in i]
 
-    print("@@@@@@")
-    print(issues_only[:top_k])
-
     return [preprocess_issue(issue, body_limit) for issue in issues_only[:top_k]]
