@@ -7,6 +7,8 @@ alongside surrounding code without sending leading whitespace to the LLM.
 from inspect import cleandoc
 
 _COMMENT_BODY_LIMIT = 300
+_FIRST_COMMENT_BODY_LIMIT = 1000
+
 
 CLASSIFY_SYSTEM = cleandoc("""
     You are a GitHub issue triage assistant. Classify a single GitHub issue.
@@ -27,6 +29,16 @@ CLASSIFY_SYSTEM = cleandoc("""
     - high: significant breakage affecting many users, no workaround available
     - medium: bugs with workarounds, meaningful feature requests with community demand
     - low: minor improvements, cosmetic issues, low-demand requests, general questions
+
+    Examples:
+    - "App crashes on startup after latest update" → regression, critical
+    - "Add support for dark mode" → feature_request, low
+    - "How do I configure X?" → question, low
+    - "Memory usage grows unbounded over time" → performance, high
+    - "Login fails for all SSO users, no workaround exists" → bug, critical
+    - "Typo in README installation section" → documentation, low
+    - "Occasional stutter during video playback on slow connections" → performance, medium
+    - "Feature X behaviour changed silently in v2.1, breaking integrations" → regression, high
 """)
 
 SUMMARIZE_SYSTEM = cleandoc("""
@@ -54,8 +66,48 @@ REPO_SUMMARY_SYSTEM = cleandoc("""
 """)
 
 
+def _format_first_comment(comment: dict) -> str:
+    """Formats the first comment with a higher character limit.
+
+    The first comment is frequently a maintainer reproducing the issue or
+    providing triage context, making it the highest-signal comment in the
+    thread. It is given a larger character budget than subsequent comments.
+
+    Args:
+        comment: An IssueComment dict with author and body fields.
+
+    Returns:
+        A formatted string for the first comment.
+    """
+    body = comment["body"]
+    if len(body) > _FIRST_COMMENT_BODY_LIMIT:
+        body = body[:_FIRST_COMMENT_BODY_LIMIT] + "... [truncated]"
+    return f"  [{comment['author']}]: {body}"
+
+
+def _format_remaining_comments(comments: list[dict]) -> str:
+    """Formats all comments after the first with a standard character limit.
+
+    Args:
+        comments: A list of IssueComment dicts with author and body fields.
+
+    Returns:
+        A formatted string of comments.
+    """
+    parts = []
+    for comment in comments:
+        body = comment["body"]
+        if len(body) > _COMMENT_BODY_LIMIT:
+            body = body[:_COMMENT_BODY_LIMIT] + "... [truncated]"
+        parts.append(f"  [{comment['author']}]: {body}")
+    return "\n".join(parts)
+
+
 def _format_comments(comments: list[dict]) -> str:
     """Formats a list of comments into a readable block for LLM prompts.
+
+    The first comment receives a higher character limit than subsequent ones,
+    as it most often contains the highest-signal context for classification.
 
     Args:
         comments: A list of IssueComment dicts with author and body fields.
@@ -65,12 +117,12 @@ def _format_comments(comments: list[dict]) -> str:
     """
     if not comments:
         return "(no comments)"
-    parts = []
-    for comment in comments:
-        body = comment["body"]
-        if len(body) > _COMMENT_BODY_LIMIT:
-            body = body[:_COMMENT_BODY_LIMIT] + "... [truncated]"
-        parts.append(f"  [{comment['author']}]: {body}")
+
+    parts = [_format_first_comment(comments[0])]
+    if len(comments) > 1:
+        remaining = _format_remaining_comments(comments[1:])
+        if remaining:
+            parts.append(remaining)
     return "\n".join(parts)
 
 
