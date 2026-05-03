@@ -653,11 +653,11 @@
           autocomplete="off"
         />
 
-        <label for="topKInput">Top K Issues</label>
+        <label for="maxIssuesInput">Max Issues</label>
         <input
           type="text"
-          id="topKInput"
-          placeholder="e.g. 20 (leave blank for default)"
+          id="maxIssuesInput"
+          placeholder="e.g. 20  (default: 50)"
           autocomplete="off"
         />
 
@@ -730,8 +730,8 @@
   async function submitAnalysis() {
     const token = document.getElementById('tokenInput').value.trim();
     const url   = document.getElementById('urlInput').value.trim();
-    const topKRaw = document.getElementById('topKInput').value.trim();
-    const topK  = topKRaw ? parseInt(topKRaw, 10) : undefined;
+    const maxIssuesRaw = document.getElementById('maxIssuesInput').value.trim();
+    const topK = maxIssuesRaw ? parseInt(maxIssuesRaw, 10) : undefined;
 
     if (!token) { flashInput('tokenInput'); return; }
     if (!url)   { flashInput('urlInput');   return; }

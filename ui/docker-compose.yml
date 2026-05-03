@@ -5,4 +5,4 @@ services:
       - "3000:80"
     restart: unless-stopped
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+    - "host.docker.internal:host-gateway" # this is for Linux

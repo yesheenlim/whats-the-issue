@@ -1,6 +1,7 @@
 # What's The Issue?
 
-Point it at a public repository and get a structured summary of what's happening in the open issues.
+Agentic GitHub issue analysis API. Point it at a public repository and get a structured,
+prioritized summary of open issues, organized by urgency so you know what to look at first.
 
 ## Prerequisites
 
@@ -11,21 +12,12 @@ Point it at a public repository and get a structured summary of what's happening
 ## Setup
 
 ```bash
-git clone https://github.com/yourname/gh-triage
-cd gh-triage
+git clone https://github.com/yesheenlim/whats-the-issue.git
+cd whats-the-issue
 cp .env.example .env
 ```
 
-Edit `.env`:
-
-```env
-LLM_PROVIDER=openai        # openai | gemini | claude
-LLM_MODEL=gpt-4o
-
-OPENAI_API_KEY=sk-...
-GOOGLE_API_KEY=            # only needed if LLM_PROVIDER=gemini
-ANTHROPIC_API_KEY=         # only needed if LLM_PROVIDER=claude
-```
+Edit `.env`
 
 ## Running
 
@@ -37,7 +29,7 @@ docker compose up --build
 
 The API will be available at `http://localhost:8000`.
 
-### Locally
+### Locally (not tested)
 
 ```bash
 pip install -e .
@@ -46,14 +38,18 @@ uvicorn app.main:app --reload
 
 ## Usage
 
+You submit a repository URL and get back a thread ID, then poll until the result is ready.
+
 ### 1. Submit a repository for analysis
 
 ```bash
 curl -X POST http://localhost:8000/analyze \
   -H "Content-Type: application/json" \
   -H "X-GitHub-Token: ghp_yourtoken" \
-  -d '{"github_url": "https://github.com/owner/repo"}'
+  -d '{"github_url": "https://github.com/owner/repo", "top_k": 25}'
 ```
+
+`top_k` controls how many issues to analyze (sorted by most recent activity). Defaults to 50.
 
 Response:
 
@@ -88,13 +84,73 @@ Response when complete:
   "thread_id": "3f91a847-...",
   "status": "complete",
   "result": {
-    "messages": [
-      { "type": "ai", "content": "..." }
-    ]
-  },
-  "error": null
+    "repository": "owner/repo",
+    "generated_at": "2026-05-03T09:00:00+00:00",
+    "issues_analyzed": 25,
+    "repo_summary": "The repository has 2 critical security issues requiring immediate attention, alongside several high-priority regressions with no known workarounds. A large volume of unanswered questions suggests gaps in the documentation.",
+    "sections": {
+      "critical": [
+        {
+          "number": 1234,
+          "title": "Auth tokens leaked in logs on failed login",
+          "url": "https://github.com/owner/repo/issues/1234",
+          "type": "bug",
+          "urgency": "critical",
+          "summary": "Authentication tokens are exposed in plaintext logs when login fails, affecting all self-hosted deployments running v2.3+.",
+          "labels": ["bug", "security"],
+          "reactions": 14,
+          "comments": 8,
+          "age_days": 3,
+          "assignees": []
+        }
+      ],
+      "high": [...],
+      "medium": [
+        {
+          "number": 1201,
+          "title": "Add dark mode support",
+          "url": "https://github.com/owner/repo/issues/1201",
+          "type": "feature_request",
+          "urgency": "medium",
+          "summary": null,
+          "labels": ["enhancement"],
+          "reactions": 4,
+          "comments": 2,
+          "age_days": 30,
+          "assignees": []
+        }
+      ],
+      "low": [...]
+    }
+  }
 }
 ```
+
+### Output structure
+
+| Field | Description |
+|---|---|
+| `repo_summary` | 2-3 sentence prose overview of the repository's issue landscape |
+| `sections.critical` | Security issues, data loss, complete breakage — includes AI summary |
+| `sections.high` | Significant breakage with no workaround — includes AI summary |
+| `sections.medium` | Bugs with workarounds, popular feature requests — metadata only |
+| `sections.low` | Minor improvements, questions, cosmetic issues — metadata only |
+
+### Issue fields
+
+| Field | Description |
+|---|---|
+| `number` | GitHub issue number |
+| `title` | Original issue title |
+| `url` | Link to the issue on GitHub |
+| `type` | `bug` `feature_request` `question` `documentation` `regression` `performance` `other` |
+| `urgency` | `critical` `high` `medium` `low` |
+| `summary` | AI-generated summary (critical and high only) |
+| `labels` | GitHub labels attached to the issue |
+| `reactions` | Total reaction count (proxy for community demand) |
+| `comments` | Number of comments |
+| `age_days` | Days since the issue was opened |
+| `assignees` | GitHub usernames assigned to the issue |
 
 ### Job statuses
 
@@ -102,7 +158,7 @@ Response when complete:
 |---|---|
 | `pending` | Job accepted, not yet started |
 | `running` | Agent is processing |
-| `complete` | Analysis finished, results available |
+| `complete` | Analysis finished, result available |
 | `failed` | Something went wrong, check the `error` field |
 
 ## API Docs
