@@ -17,7 +17,13 @@ cd whats-the-issue
 cp .env.example .env
 ```
 
-Edit `.env`
+Edit `.env`:
+- Setup LLM endpoint:
+  - Here you want to set up `LLM_PROVIDER`, `LLM_MODEL` and the API keys.
+  - Currently we only support `gemini`, `claude` and `openai`.
+- Then you may also want to setup the number of characters in the GH issue 
+body to truncate for the classification and truncation step,
+to control token costs.
 
 ## Running
 
@@ -35,6 +41,20 @@ The API will be available at `http://localhost:8000`.
 pip install -e .
 uvicorn app.main:app --reload
 ```
+
+## LLMs
+
+Currently we support Gemini, OpenAI and Claude endpoints.
+
+This repo has been tested on:
+
+`openai`:
+- `gpt-4o`
+
+`claude`:
+- `claude-sonnet-4-20250514`
+- `claude-haiku-4-5-20251001`
+- `claude-sonnet-4-6`
 
 ## Usage
 
