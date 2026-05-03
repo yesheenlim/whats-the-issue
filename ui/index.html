@@ -484,6 +484,137 @@
       background: var(--border);
       margin: 4px 0;
     }
+
+    /* ─── Tabs ─── */
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      flex-shrink: 0;
+      background: var(--bg);
+    }
+    .tab {
+      padding: 10px 16px;
+      font-size: 11px;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ─── Formatted view ─── */
+    .repo-header { margin-bottom: 24px; }
+    .repo-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--accent2);
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-size: 12px;
+      line-height: 1.75;
+      color: var(--text);
+      margin-top: 10px;
+    }
+    .repo-meta-line {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .urgency-section { margin-bottom: 28px; }
+    .urgency-heading {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .urgency-heading::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .urgency-critical { color: var(--red); }
+    .urgency-high     { color: #c05820; }
+    .urgency-medium   { color: var(--yellow); }
+    .urgency-low      { color: var(--muted); }
+
+    .issue-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      transition: border-color 0.1s;
+    }
+    .issue-card:hover { border-color: var(--border2); }
+    .issue-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .issue-number {
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+    .issue-title {
+      font-size: 12px;
+      color: var(--text);
+      font-weight: 500;
+      flex: 1;
+    }
+    .issue-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .issue-title a:hover { color: var(--blue); }
+    .issue-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      padding-left: 36px;
+    }
+    .issue-summary {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .issue-type-badge {
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 2px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .empty-section {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      padding: 4px 0;
+    }
   </style>
 </head>
 <body>
@@ -522,6 +653,14 @@
           autocomplete="off"
         />
 
+        <label for="topKInput">Top K Issues</label>
+        <input
+          type="text"
+          id="topKInput"
+          placeholder="e.g. 20 (leave blank for default)"
+          autocomplete="off"
+        />
+
         <button class="btn" id="submitBtn" onclick="submitAnalysis()">
           <div class="spin"></div>
           <span id="submitLabel">Analyze Issues</span>
@@ -548,6 +687,10 @@
         <button class="copy-btn" id="copyBtn" onclick="copyResult()" style="display:none">
           Copy
         </button>
+      </div>
+      <div class="tab-bar" id="tabBar" style="display:none">
+        <div class="tab active" id="tab-formatted" onclick="switchTab('formatted')">Summary</div>
+        <div class="tab" id="tab-raw" onclick="switchTab('raw')">Raw JSON</div>
       </div>
       <div class="output-content" id="outputContent">
         <div class="empty-state">
@@ -587,11 +730,16 @@
   async function submitAnalysis() {
     const token = document.getElementById('tokenInput').value.trim();
     const url   = document.getElementById('urlInput').value.trim();
+    const topKRaw = document.getElementById('topKInput').value.trim();
+    const topK  = topKRaw ? parseInt(topKRaw, 10) : undefined;
 
     if (!token) { flashInput('tokenInput'); return; }
     if (!url)   { flashInput('urlInput');   return; }
 
     setSubmitState(true);
+
+    const body = { github_url: url };
+    if (topK !== undefined && !isNaN(topK)) body.top_k = topK;
 
     try {
       const res = await fetch(`${API_BASE}/analyze`, {
@@ -600,7 +748,7 @@
           'Content-Type': 'application/json',
           'X-GitHub-Token': token,
         },
-        body: JSON.stringify({ github_url: url }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -705,15 +853,27 @@
     `).join('');
   }
 
+  let activeTab = 'formatted';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tab-formatted').classList.toggle('active', tab === 'formatted');
+    document.getElementById('tab-raw').classList.toggle('active', tab === 'raw');
+    const job = jobs.find(j => j.thread_id === activeThreadId);
+    if (job && job.status === 'complete') renderCompleteOutput(job);
+  }
+
   function renderOutput(job) {
     const titleEl   = document.getElementById('outputTitle');
     const contentEl = document.getElementById('outputContent');
     const copyBtn   = document.getElementById('copyBtn');
+    const tabBar    = document.getElementById('tabBar');
 
     titleEl.innerHTML = `<span>${repoName(job.url)}</span> &nbsp;·&nbsp; ${job.thread_id.slice(0,8)}`;
 
     if (job.status === 'pending' || job.status === 'running') {
       copyBtn.style.display = 'none';
+      tabBar.style.display = 'none';
       contentEl.innerHTML = `
         <div class="loading-state">
           <div style="font-size:11px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase;">
@@ -728,6 +888,7 @@
 
     if (job.status === 'failed') {
       copyBtn.style.display = 'none';
+      tabBar.style.display = 'none';
       contentEl.innerHTML = `
         <div class="error-block">
           <div style="margin-bottom:6px; font-size:10px; letter-spacing:.1em; text-transform:uppercase;">Error</div>
@@ -739,33 +900,87 @@
 
     // complete
     copyBtn.style.display = '';
-    const messages = job.result?.messages || [];
-    contentEl.innerHTML = `
-      <div class="result-wrapper">
-        <div class="result-meta">
-          <span class="result-repo">${escapeHtml(repoName(job.url))}</span>
-          <span class="result-thread">thread ${job.thread_id}</span>
-        </div>
-        ${messages.map(msg => renderMessage(msg)).join('')}
-      </div>
-    `;
+    tabBar.style.display = '';
+    renderCompleteOutput(job);
   }
 
-  function renderMessage(msg) {
-    const type = msg.type || 'ai';
-    const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2);
+  function renderCompleteOutput(job) {
+    const contentEl = document.getElementById('outputContent');
+    if (activeTab === 'raw') {
+      contentEl.innerHTML = `
+        <div class="result-wrapper">
+          <div class="message-body ai-body" style="white-space:pre; overflow-x:auto; font-size:12px;">${escapeHtml(JSON.stringify(job.result, null, 2))}</div>
+        </div>`;
+    } else {
+      contentEl.innerHTML = renderFormatted(job.result);
+    }
+  }
 
-    const roleLabel = type === 'ai' ? 'assistant' : type === 'tool' ? 'tool' : 'human';
-    const roleClass = type === 'ai' ? 'ai-role' : type === 'tool' ? 'tool-role' : 'human-role';
-    const bodyClass = type === 'ai' ? 'ai-body' : '';
+  function renderFormatted(r) {
+    if (!r) return '<div class="empty-state"><p>No result data.</p></div>';
+
+    const urgencies = ['critical','high','medium','low'];
+    const urgencyLabels = { critical:'Critical', high:'High', medium:'Medium', low:'Low' };
+    const sections = r.sections || {};
+
+    const sectionsHtml = urgencies.map(u => {
+      const issues = sections[u] || [];
+      const headingClass = 'urgency-' + u;
+      const itemsHtml = issues.length === 0
+        ? `<div class="empty-section">No ${u} issues.</div>`
+        : issues.map(issue => renderIssueCard(issue)).join('');
+      return `
+        <div class="urgency-section">
+          <div class="urgency-heading ${headingClass}">${urgencyLabels[u]}</div>
+          ${itemsHtml}
+        </div>`;
+    }).join('');
+
+    const genAt = r.generated_at ? new Date(r.generated_at).toLocaleString() : '';
 
     return `
-      <div class="message-block">
-        <div class="message-role ${roleClass}">${roleLabel}</div>
-        <div class="message-body ${bodyClass}">${renderMarkdown(content)}</div>
-      </div>
-    `;
+      <div class="result-wrapper">
+        <div class="repo-header">
+          <div class="result-meta" style="margin-bottom:8px;">
+            <span class="result-repo">${escapeHtml(r.repository || '')}</span>
+            <span class="result-thread">${r.issues_analyzed || 0} issues analysed</span>
+          </div>
+          ${r.repo_summary ? `<div class="repo-summary">${escapeHtml(r.repo_summary)}</div>` : ''}
+          ${genAt ? `<div class="repo-meta-line">Generated ${genAt}</div>` : ''}
+        </div>
+        ${sectionsHtml}
+      </div>`;
   }
+
+  function renderIssueCard(issue) {
+    const typeLabel = (issue.type || '').replace(/_/g, ' ');
+    const meta = [
+      issue.age_days != null ? `${issue.age_days}d old` : null,
+      issue.comments != null ? `${issue.comments} comments` : null,
+      issue.reactions != null ? `${issue.reactions} reactions` : null,
+      issue.assignees && issue.assignees.length ? `assigned: ${issue.assignees.join(', ')}` : null,
+    ].filter(Boolean).join(' · ');
+
+    const summaryHtml = issue.summary
+      ? `<div class="issue-summary">${escapeHtml(issue.summary)}</div>`
+      : '';
+
+    return `
+      <div class="issue-card">
+        <div class="issue-card-top">
+          <span class="issue-number">#${issue.number}</span>
+          <span class="issue-title">
+            <a href="${escapeHtml(issue.url || '#')}" target="_blank" rel="noopener">
+              ${escapeHtml(issue.title || '')}
+            </a>
+          </span>
+          ${typeLabel ? `<span class="issue-type-badge">${escapeHtml(typeLabel)}</span>` : ''}
+        </div>
+        ${meta ? `<div class="issue-meta">${escapeHtml(meta)}</div>` : ''}
+        ${summaryHtml}
+      </div>`;
+  }
+
 
   // Minimal markdown renderer
   function renderMarkdown(text) {

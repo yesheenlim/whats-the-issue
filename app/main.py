@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.agent.llm_factory import create_llm
 from app.agent.manager import AgentManager
 from app.api.routes import router
 from app.config import get_settings
@@ -9,12 +10,11 @@ from app.config import get_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     settings = get_settings()
+    llm = create_llm(settings)
     app.state.settings = settings
-    app.state.agent_manager = AgentManager()
+    app.state.agent_manager = AgentManager(llm=llm, settings=settings)
     yield
-    # Shutdown — nothing to clean up for in-memory
 
 
 def create_app() -> FastAPI:

@@ -18,11 +18,9 @@ class Job(BaseModel):
     error: Optional[str] = None
 
 
-# --- Request / Response models ---
-
-
 class AnalyzeRequest(BaseModel):
     github_url: HttpUrl
+    top_k: int = 50
 
 
 class AnalyzeResponse(BaseModel):

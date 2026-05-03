@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None
 
+    BODY_TRUNCATION_CLASSIFY: int = 500
+    BODY_TRUNCATION_SUMMARIZE: int = 2000
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

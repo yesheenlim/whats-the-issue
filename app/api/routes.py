@@ -16,6 +16,7 @@ async def submit_analysis(
     thread_id = await manager.submit(
         github_url=str(body.github_url),
         github_token=x_github_token,
+        top_k=body.top_k,
     )
     return AnalyzeResponse(thread_id=thread_id, status=JobStatus.PENDING)
 
