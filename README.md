@@ -60,12 +60,6 @@ This repo has been tested on:
 
 A frontend UI for interacting with the API is available in the `./ui` folder.
 It runs as a separate Docker Compose service and connects to the API running on `localhost:8000`.
-
-```bash
-cd ui
-docker compose up --build
-```
-
 Refer to `./ui/README.md` for setup details.
 
 ## Usage

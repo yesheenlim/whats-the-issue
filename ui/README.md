@@ -10,10 +10,14 @@ A lightweight web frontend for the agent API. Paste in a GitHub repo URL, enter 
 
 ## Usage
 
-Start the UI:
-
+**Windows / Linux:**
 ```bash
 docker compose up --build
+```
+
+**Mac:**
+```bash
+docker compose -f docker-compose.mac.yml up --build
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
@@ -23,7 +27,7 @@ The API must already be running before you submit a job. The UI proxies all `/ap
 ## How it works
 
 1. Enter your GitHub token and a repository URL (`https://github.com/owner/repo`)
-2. Optionally set Max Issues (defaults to 50) and Max Comments per Issue to limit what the agent analyses
+2. Optionally set **Max Issues** (defaults to 50) and **Max Comments per Issue** to limit what the agent analyses
 3. Click **Analyze Issues** — this submits a job to the API and returns a `thread_id`
 4. The UI polls for results every 2.5 seconds and displays a live status indicator
 5. When complete, results are shown in two tabs:
@@ -31,18 +35,14 @@ The API must already be running before you submit a job. The UI proxies all `/ap
    - **Raw JSON** — the full response payload, pretty-printed
 6. Use the **Copy** button to copy the raw result to your clipboard
 
-Job history is saved in `localStorage` and persists across page reloads. Any jobs that were still running when you closed the tab will resume polling automatically.
+Job history is saved in your browser's `localStorage` and persists across page reloads. Any jobs still running when you closed the tab will resume polling automatically.
 
 ## Configuration
 
-**API port** — if your API runs on a different port, update the `proxy_pass` line in `frontend/nginx.conf`:
+**API port** — if your API runs on a different port, update the `proxy_pass` line in `frontend/nginx.conf` (Windows/Linux) or `frontend/nginx.mac.conf` (Mac):
 
 ```nginx
 proxy_pass http://host.docker.internal:YOUR_PORT/;
 ```
 
-After any config change, rebuild:
-
-```bash
-docker compose up --build
-```
+After any config change, rebuild using the appropriate command for your platform above.
