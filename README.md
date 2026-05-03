@@ -56,6 +56,10 @@ This repo has been tested on:
 - `claude-haiku-4-5-20251001`
 - `claude-sonnet-4-6`
 
+`gemini`:
+- `gemini-2.5-flash`
+- `gemini-2.5-pro`
+
 ## Frontend UI (optional)
 
 A frontend UI for interacting with the API is available in the `./ui` folder.
