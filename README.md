@@ -21,8 +21,8 @@ Edit `.env`:
 - Setup LLM endpoint:
   - Here you want to set up `LLM_PROVIDER`, `LLM_MODEL` and the API keys.
   - Currently we only support `gemini`, `claude` and `openai`.
-- Then you may also want to setup the number of characters in the GH issue 
-body to truncate for the classification and truncation step,
+- Then you may also want to setup the number of characters in the GH issue
+body to truncate for the classification and summarization step,
 to control token costs.
 
 ## Running
@@ -56,6 +56,18 @@ This repo has been tested on:
 - `claude-haiku-4-5-20251001`
 - `claude-sonnet-4-6`
 
+## Frontend UI (optional)
+
+A frontend UI for interacting with the API is available in the `./ui` folder.
+It runs as a separate Docker Compose service and connects to the API running on `localhost:8000`.
+
+```bash
+cd ui
+docker compose up --build
+```
+
+Refer to `./ui/README.md` for setup details.
+
 ## Usage
 
 You submit a repository URL and get back a thread ID, then poll until the result is ready.
@@ -66,10 +78,15 @@ You submit a repository URL and get back a thread ID, then poll until the result
 curl -X POST http://localhost:8000/analyze \
   -H "Content-Type: application/json" \
   -H "X-GitHub-Token: ghp_yourtoken" \
-  -d '{"github_url": "https://github.com/owner/repo", "top_k": 25}'
+  -d '{
+    "github_url": "https://github.com/owner/repo",
+    "top_k_issues": 25,
+    "top_n_comments": 5
+  }'
 ```
 
-`top_k` controls how many issues to analyze (sorted by most recent activity). Defaults to 50.
+- `top_k_issues` — how many issues to analyse, sorted by most recent activity. Defaults to 50.
+- `top_n_comments` — how many recent comments to include per issue. Defaults to 5.
 
 Response:
 
@@ -114,12 +131,12 @@ Response when complete:
           "number": 1234,
           "title": "Auth tokens leaked in logs on failed login",
           "url": "https://github.com/owner/repo/issues/1234",
-          "type": "bug",
+          "issue_type": "bug",
           "urgency": "critical",
           "summary": "Authentication tokens are exposed in plaintext logs when login fails, affecting all self-hosted deployments running v2.3+.",
           "labels": ["bug", "security"],
           "reactions": 14,
-          "comments": 8,
+          "comment_count": 8,
           "age_days": 3,
           "assignees": []
         }
@@ -130,12 +147,12 @@ Response when complete:
           "number": 1201,
           "title": "Add dark mode support",
           "url": "https://github.com/owner/repo/issues/1201",
-          "type": "feature_request",
+          "issue_type": "feature_request",
           "urgency": "medium",
           "summary": null,
           "labels": ["enhancement"],
           "reactions": 4,
-          "comments": 2,
+          "comment_count": 2,
           "age_days": 30,
           "assignees": []
         }
@@ -163,12 +180,12 @@ Response when complete:
 | `number` | GitHub issue number |
 | `title` | Original issue title |
 | `url` | Link to the issue on GitHub |
-| `type` | `bug` `feature_request` `question` `documentation` `regression` `performance` `other` |
+| `issue_type` | `bug` `feature_request` `question` `documentation` `regression` `performance` `other` |
 | `urgency` | `critical` `high` `medium` `low` |
 | `summary` | AI-generated summary (critical and high only) |
 | `labels` | GitHub labels attached to the issue |
 | `reactions` | Total reaction count (proxy for community demand) |
-| `comments` | Number of comments |
+| `comment_count` | Number of comments on the issue |
 | `age_days` | Days since the issue was opened |
 | `assignees` | GitHub usernames assigned to the issue |
 

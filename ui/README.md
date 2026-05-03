@@ -23,7 +23,7 @@ The API must already be running before you submit a job. The UI proxies all `/ap
 ## How it works
 
 1. Enter your GitHub token and a repository URL (`https://github.com/owner/repo`)
-2. Optionally set **Max Issues** to limit how many issues the agent analyses (defaults to 50)
+2. Optionally set Max Issues (defaults to 50) and Max Comments per Issue to limit what the agent analyses
 3. Click **Analyze Issues** — this submits a job to the API and returns a `thread_id`
 4. The UI polls for results every 2.5 seconds and displays a live status indicator
 5. When complete, results are shown in two tabs:
